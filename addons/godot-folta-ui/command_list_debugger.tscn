@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=3 uid="uid://3nkpqxq1gckp"]
+
+[ext_resource type="Script" path="res://addons/godot-folta-ui/command_list_debugger.gd" id="1_20aov"]
+
+[node name="CommandListDebugger" type="Window"]
+title = "UIDebugger"
+initial_position = 4
+size = Vector2i(800, 800)
+always_on_top = true
+script = ExtResource("1_20aov")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ListTree" type="Tree" parent="Control"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+columns = 5
+column_titles_visible = true
+allow_search = false
+hide_folding = true
+hide_root = true

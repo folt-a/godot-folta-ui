@@ -1,0 +1,128 @@
+[gd_scene load_steps=6 format=3 uid="uid://dspldiyc2hecg"]
+
+[ext_resource type="Script" path="res://example_scenes/title_menu.gd" id="1_qbwgf"]
+[ext_resource type="Script" path="res://addons/godot-folta-ui/list/v_folta_ui_command_list.gd" id="1_w21y2"]
+[ext_resource type="PackedScene" uid="uid://ca7bykyl2gd1i" path="res://example_scenes/icon_button.tscn" id="2_es1qo"]
+[ext_resource type="Texture2D" uid="uid://qvtvanoh6xr7" path="res://icon.svg" id="3_krkxo"]
+[ext_resource type="PackedScene" uid="uid://3nkpqxq1gckp" path="res://addons/godot-folta-ui/command_list_debugger.tscn" id="5_w3c8o"]
+
+[node name="TitleMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_qbwgf")
+
+[node name="FoltaUICommandVList" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_w21y2")
+
+[node name="IconButton" parent="FoltaUICommandVList" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"1"
+
+[node name="IconButton2" parent="FoltaUICommandVList" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"2"
+
+[node name="IconButton3" parent="FoltaUICommandVList" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"3"
+
+[node name="IconButton4" parent="FoltaUICommandVList" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"4"
+
+[node name="FoltaUICommandVList2" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 354.0
+offset_right = 745.0
+offset_bottom = 676.0
+script = ExtResource("1_w21y2")
+is_menu_enable = false
+
+[node name="IconButton" parent="FoltaUICommandVList2" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"1"
+
+[node name="IconButton2" parent="FoltaUICommandVList2" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"2"
+
+[node name="IconButton3" parent="FoltaUICommandVList2" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"3"
+
+[node name="FoltaUICommandVList3" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 750.0
+offset_top = 5.0
+offset_right = 1141.0
+offset_bottom = 681.0
+script = ExtResource("1_w21y2")
+is_menu_enable = false
+
+[node name="IconButton" parent="FoltaUICommandVList3" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"1"
+
+[node name="IconButton2" parent="FoltaUICommandVList3" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"2"
+
+[node name="FoltaUICommandVList4" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 761.0
+offset_top = 339.0
+offset_right = 1152.0
+offset_bottom = 1015.0
+script = ExtResource("1_w21y2")
+is_menu_enable = false
+
+[node name="IconButton" parent="FoltaUICommandVList4" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"1"
+
+[node name="IconButton2" parent="FoltaUICommandVList4" instance=ExtResource("2_es1qo")]
+custom_minimum_size = Vector2(391, 132)
+layout_mode = 2
+menu_text = "そのようなことがあろうはずがございません"
+menu_icon = ExtResource("3_krkxo")
+id = &"2"
+
+[node name="CommandListDebugger" parent="." instance=ExtResource("5_w3c8o")]
+size = Vector2i(1200, 800)
