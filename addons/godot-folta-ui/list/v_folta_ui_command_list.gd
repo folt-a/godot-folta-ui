@@ -113,23 +113,29 @@ var saved_focus_command:Control = null
 ## 現在フォーカスがあたってるボタン
 var focusing_button = null
 
+## ロック状態（入力を無視する）
 var is_lock:bool = false
 
 #-----------------------------------------------------------
 #10. private variables
 #-----------------------------------------------------------
-## 最期に押した移動キー　ui_acceptはnullのかわり
+
+## 最後に押した移動キー　ui_acceptはnullのかわり
 var _lastKey:StringName = KEY_UI_ACCEPT
 
 ## 現在のキー長押しディレイ
 var _key_duration:int = key_duration_speed_default
 
-# キー何個長押しで進んだら速くするかのカウンター
+## キー何個長押しで進んだら速くするかのカウンター
 var _key_duration_count:int = 0
 
+## 左移動が有効か
 var _is_left_move_enabled = false
+
+## 右移動が有効か
 var _is_right_move_enabled = false
 
+## ジョイパッドが押されているか
 var _is_joy_pressing:bool = false
 
 #-----------------------------------------------------------
@@ -139,6 +145,7 @@ var _is_joy_pressing:bool = false
 ## 最後にキーを押した時間
 @onready var _lastKeyTime:int = Time.get_ticks_msec()
 
+## シーンツリー
 @onready var tree:SceneTree = get_tree()
 
 #-----------------------------------------------------------
@@ -381,7 +388,7 @@ func _set_all_item_neighbour_items()->void:
 	var children = get_all_children(self)
 
 	command_list.clear()
-	for child  in children:
+	for child in children:
 		if child is FoltaUIButton or child is FoltaUIButton:
 			if child.is_empty:
 				all_command_list.append(child)

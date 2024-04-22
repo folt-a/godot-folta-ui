@@ -20,9 +20,9 @@ extends HBoxContainer
 #-----------------------------------------------------------
 #05. signals
 #-----------------------------------------------------------
-signal command_cancel
+signal canceled
 signal moved_focus
-signal safe_pressed(command:Command)
+signal safe_pressed(id:StringName, control:Control)
 
 #-----------------------------------------------------------
 #06. enums
@@ -32,26 +32,33 @@ signal safe_pressed(command:Command)
 #07. constants
 #-----------------------------------------------------------
 
+const KEY_UI_UP:StringName = &"ui_up"
+const KEY_UI_DOWN:StringName = &"ui_down"
+const KEY_UI_LEFT:StringName = &"ui_left"
+const KEY_UI_RIGHT:StringName = &"ui_right"
+const KEY_UI_ACCEPT:StringName = &"ui_accept"
+const KEY_UI_CANCEL:StringName = &"ui_cancel"
+
+const IS_JOYPAD_ENABLED:bool = false
+const KEY_JOY_UP:StringName = &"joy_up"
+const KEY_JOY_DOWN:StringName = &"joy_down"
+const KEY_JOY_LEFT:StringName = &"joy_left"
+const KEY_JOY_RIGHT:StringName = &"joy_right"
+
 #-----------------------------------------------------------
 #08. exported variables
 #-----------------------------------------------------------
 
-##
-var command_list:Array= []
-
-## 空コマンドを含むすべてのコマンド
-var all_command_list:Array= []
-
-var pre_cancel_func:Callable
-
-var post_cancel_func:Callable
-
+## メニューが有効な状態
 @export var is_menu_enable:bool = true
+
+## 押した後にフォーカスを外すかどうか
+@export var is_pressed_exit_focus:bool = true
 
 ## Hold状態でカーソルを進めるかどうか
 @export var hold_enable:bool = true
 
-# 各Commandの連打防止硬直時間
+## 各Commandの連打防止硬直時間
 @export var safe_delay_sec:float = 0.2
 
 @export_category("Duration")
@@ -71,6 +78,8 @@ var post_cancel_func:Callable
 
 @export var is_focus_exit_animation:bool = true
 
+@export var is_focus_save:bool = true
+
 @export var all_item_top_control_path:NodePath
 
 @export var all_item_bottom_control_path:NodePath
@@ -79,6 +88,10 @@ var post_cancel_func:Callable
 
 @onready var all_item_bottom_control:Control = get_node_or_null(all_item_bottom_control_path)
 
+
+@export_category("Debug")
+@export var is_debug:bool = false
+
 @export var animation_player_path:NodePath
 
 @onready var animation_player:AnimationPlayer = get_node_or_null(animation_player_path)
@@ -86,32 +99,45 @@ var post_cancel_func:Callable
 #-----------------------------------------------------------
 #09. public variables
 #-----------------------------------------------------------
+
+## コマンド
+var command_list:Array= []
+
+## 空コマンドを含むすべてのコマンド
+var all_command_list:Array= []
+
 ## 無効時にフォーカス位置をセーブする
-var saved_focus_command:Command = null
+var saved_focus_command:Control = null
 
 ## 現在フォーカスがあたってるボタン
 var focusing_button = null
+
+## ロック状態（入力を無視する）
+var is_lock:bool = false
 
 
 #-----------------------------------------------------------
 #10. private variables
 #-----------------------------------------------------------
-var is_lock:bool = false
-
-
-#:TextureButton
-
-## 最期に押した移動キー　ui_acceptはnullのかわり
-var _lastKey:String = "ui_accept"
+## 最後に押した移動キー　ui_acceptはnullのかわり
+var _lastKey:StringName = KEY_UI_ACCEPT
 
 ## 現在のキー長押しディレイ
 var _key_duration:int = key_duration_speed_default
 
-# キー何個長押しで進んだら速くするかのカウンター
+## キー何個長押しで進んだら速くするかのカウンター
 var _key_duration_count:int = 0
 
+## 上移動が有効か
 var _is_top_move_enabled = false
+
+## 下移動が有効か
 var _is_bottom_move_enabled = false
+
+## ジョイパッドが押されているか
+var _is_joy_pressing:bool = false
+
+
 
 var joy_pressing:bool = false
 
@@ -122,6 +148,7 @@ var joy_pressing:bool = false
 ## 最後にキーを押した時間
 @onready var _lastKeyTime:int = Time.get_ticks_msec()
 
+## シーンツリー
 @onready var tree:SceneTree = get_tree()
 
 #-----------------------------------------------------------
@@ -143,19 +170,11 @@ func _ready():
 func _process(_delta):
 	if !is_menu_enable: return
 	if is_lock: return
-	if Input.is_action_just_pressed("ui_cancel"):
-		if pre_cancel_func.is_valid():
-			pre_cancel_func.call()
-		is_lock = true
-		if animation_player != null and animation_player.has_animation("cancel"):
-			animation_player.play("cancel")
-			await animation_player.animation_finished
-		if post_cancel_func.is_valid():
-			post_cancel_func.call()
-		is_lock = false
+	if Input.is_action_just_pressed(KEY_UI_CANCEL):
+		cancel()
 	elif (
 		(
-			joy_pressing
+			_is_joy_pressing
 			and
 			(
 				abs(Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)) < 0.5 \
@@ -166,42 +185,36 @@ func _process(_delta):
 		(
 			# ジョイパッド以外はリリースでとれる
 			(
-				Input.is_action_just_released("up") \
-				or Input.is_action_just_released("down")\
-				or Input.is_action_just_released("left")\
-				or Input.is_action_just_released("right")\
+				Input.is_action_just_released(KEY_UI_UP) \
+				or Input.is_action_just_released(KEY_UI_DOWN)\
+				or Input.is_action_just_released(KEY_UI_LEFT)\
+				or Input.is_action_just_released(KEY_UI_RIGHT)\
 			)
 		)
 		):
-#			速さリセット
-			_key_duration = key_duration_speed_default
-			if !hold_enable:
-				_lastKey = &""
-				_key_duration = 0
-				_lastKeyTime = 0
-			_key_duration_count = 0
-			_lastKeyTime = 0 #ウェイトなしにする
+			_reset_pressing()
 	elif (
-		(
 			(
-				Input.is_action_pressed("joy_up") \
-				or Input.is_action_pressed("joy_down")\
-				or Input.is_action_pressed("joy_left")\
-				or Input.is_action_pressed("joy_right")\
+				IS_JOYPAD_ENABLED 
+				and (
+					Input.is_action_pressed(KEY_JOY_UP) \
+					or Input.is_action_pressed(KEY_JOY_DOWN)\
+					or Input.is_action_pressed(KEY_JOY_LEFT)\
+					or Input.is_action_pressed(KEY_JOY_RIGHT)\
+				)
 			)
-		)
-		or
-		(
+			or
 			(
-				Input.is_action_pressed("up") \
-				or Input.is_action_pressed("down")\
-				or Input.is_action_pressed("left")\
-				or Input.is_action_pressed("right")\
+				(
+					Input.is_action_pressed(KEY_UI_UP) \
+					or Input.is_action_pressed(KEY_UI_DOWN)\
+					or Input.is_action_pressed(KEY_UI_LEFT)\
+					or Input.is_action_pressed(KEY_UI_RIGHT)\
+				)
 			)
-		)
 		):
 		_move_focus_command()
-	elif Input.is_action_just_pressed("ui_accept"):
+	elif focusing_button != null and Input.is_action_just_pressed(KEY_UI_ACCEPT):
 		for command in command_list:
 			command.set_focus_exit(false,false)
 		
@@ -246,7 +259,7 @@ func _on_safe_pressed_command(button):
 #15. public methods
 #-----------------------------------------------------------
 func refresh_commands():
-	set_all_item_neighbour_items()
+	_set_all_item_neighbour_items()
 
 	# set signals
 	for command in command_list:
@@ -275,31 +288,106 @@ func refresh_commands():
 		set_all_items_disable()
 
 ## 有効、表示にする
-func yuko(wait_sec:float = 0.0):
+func show_list(unlock_wait_sec:float = 0.0):
 	is_menu_enable = true
 	visible = true
 	set_all_items_enable()
 	lock()
-	if wait_sec > 0.01:
-		await tree.create_timer(wait_sec).timeout
+	if unlock_wait_sec > 0.01:
+		await tree.create_timer(unlock_wait_sec).timeout
 	unlock.call_deferred()
 
 ## 無効にする
-func muko():
+func disable_list():
 	is_menu_enable = false
 	set_all_items_disable()
 	lock()
 
 ## 無効、非表示にする
-func muko_hide():
-	muko()
+func hide_list():
+	disable_list()
 	visible = false
+
+## キャンセルする
+func cancel():
+	is_lock = true
+	canceled.emit()
+	if animation_player != null and animation_player.has_animation("cancel"):
+		animation_player.play("cancel")
+		await animation_player.animation_finished
+	is_lock = false
 
 func set_command_list(buttons:Array):
 	command_list = buttons
 
-## [public] アイテムすべてのキーフォーカス先を設定する
-func set_all_item_neighbour_items()->void:
+func set_all_items_enable()->void:
+	var children:Array
+	_set_all_item_neighbour_items()
+	if command_list.is_empty():
+		children = get_all_children(self)
+	else:
+		children = command_list
+	for child  in children:
+		if child is Control:
+			if child is Button:
+				child.disabled = false
+				child.safe_disabled = false
+				child.focus_mode = Control.FOCUS_ALL
+				child.mouse_filter = Control.MOUSE_FILTER_STOP
+	unlock()
+
+func set_all_items_disable()->void:
+	var children:Array
+	if command_list.is_empty():
+		children = get_all_children(self)
+	else:
+		children = command_list
+	for child in children:
+		if child is Control:
+			if child is Button:
+				child.disabled = true
+				child.safe_disabled = true
+				child.focus_mode = Control.FOCUS_NONE
+				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lock()
+
+func focus_command(command:Control):
+	for command_ in command_list:
+		command_.set_focus_exit(false,false)
+	command.set_focus_enter(false,false)
+	focusing_button = command
+	saved_focus_command = focusing_button
+
+func focus_first():
+	assert(!command_list.is_empty())
+	for command in command_list:
+		command.set_focus_exit(false,false)
+	command_list[0].set_focus_enter(false,false)
+	focusing_button = command_list[0]
+	saved_focus_command = focusing_button
+
+func focus_saved_command():
+	if !saved_focus_command: 
+		focus_first()
+		return
+	for command_ in command_list:
+		command_.set_focus_exit(false,false)
+	saved_focus_command.set_focus_enter()
+	focusing_button = saved_focus_command
+
+func lock():
+	is_lock = true
+
+func unlock():
+	is_lock = false
+
+#-----------------------------------------------------------
+#16. private methods
+#-----------------------------------------------------------
+
+
+## アイテムすべてのキーフォーカス先を設定する
+func _set_all_item_neighbour_items()->void:
 	_is_top_move_enabled = false
 	_is_bottom_move_enabled = false
 
@@ -310,7 +398,7 @@ func set_all_item_neighbour_items()->void:
 
 	command_list.clear()
 	for child in children:
-		if child is Command:
+		if child is FoltaUIButton or child is FoltaUIButton:
 			if child.is_empty:
 				all_command_list.append(child)
 				continue
@@ -352,89 +440,34 @@ func set_all_item_neighbour_items()->void:
 		saved_focus_command = focusing_button
 		command_list[0].set_focus_enter(false,false)
 
-
-func set_all_items_enable()->void:
-	var children:Array
-	set_all_item_neighbour_items()
-	if command_list.is_empty():
-		children = get_all_children(self)
-	else:
-		children = command_list
-	for child  in children:
-		if child is Control:
-			if child is Button:
-				child.disabled = false
-				child.safe_disabled = false
-				child.focus_mode = Control.FOCUS_ALL
-				child.mouse_filter = Control.MOUSE_FILTER_STOP
-	unlock()
-
-func set_all_items_disable()->void:
-	var children:Array
-	if command_list.is_empty():
-		children = get_all_children(self)
-	else:
-		children = command_list
-	for child in children:
-		if child is Control:
-			if child is Button:
-				child.disabled = true
-				child.safe_disabled = true
-				child.focus_mode = Control.FOCUS_NONE
-				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lock()
-
-func focus_command(command:Command):
-	for command_ in command_list:
-		command_.set_focus_exit(false,false)
-	command.set_focus_enter(false,false)
-	focusing_button = command
-	saved_focus_command = focusing_button
-
-func focus_first():
-	assert(!command_list.is_empty())
-	for command in command_list:
-		command.set_focus_exit(false,false)
-	command_list[0].set_focus_enter(false,false)
-	focusing_button = command_list[0]
-	saved_focus_command = focusing_button
-
-func focus_saved_command():
-	if !saved_focus_command: 
-		focus_first()
-		return
-	for command_ in command_list:
-		command_.set_focus_exit(false,false)
-	saved_focus_command.set_focus_enter()
-	focusing_button = saved_focus_command
-
-#-----------------------------------------------------------
-#16. private methods
-#-----------------------------------------------------------
-
 func _move_focus_command():
 	var is_up:bool = false
 	var is_down:bool = false
 	var is_left:bool = false
 	var is_right:bool = false
 
-	if Input.is_action_pressed("joy_up"):
+	if not IS_JOYPAD_ENABLED:
+		is_up = Input.is_action_pressed(KEY_UI_UP)
+		is_down = Input.is_action_pressed(KEY_UI_DOWN)
+		is_left = Input.is_action_pressed(KEY_UI_LEFT)
+		is_right = Input.is_action_pressed(KEY_UI_RIGHT)
+	elif Input.is_action_pressed(KEY_JOY_UP):
 		is_up = true
-		joy_pressing = true
-	elif Input.is_action_pressed("joy_down"):
+		_is_joy_pressing = true
+	elif Input.is_action_pressed(KEY_JOY_DOWN):
 		is_down = true
-		joy_pressing = true
-	elif Input.is_action_pressed("joy_left"):
+		_is_joy_pressing = true
+	elif Input.is_action_pressed(KEY_JOY_LEFT):
 		is_left = true
-		joy_pressing = true
-	elif Input.is_action_pressed("joy_right"):
+		_is_joy_pressing = true
+	elif Input.is_action_pressed(KEY_JOY_RIGHT):
 		is_right = true
-		joy_pressing = true
+		_is_joy_pressing = true
 	else:
-		is_up = Input.is_action_pressed(&"up")
-		is_down = Input.is_action_pressed(&"down")
-		is_left = Input.is_action_pressed(&"left")
-		is_right = Input.is_action_pressed(&"right")
+		is_up = Input.is_action_pressed(KEY_UI_UP)
+		is_down = Input.is_action_pressed(KEY_UI_DOWN)
+		is_left = Input.is_action_pressed(KEY_UI_LEFT)
+		is_right = Input.is_action_pressed(KEY_UI_RIGHT)
 
 	if (is_up and (is_down or is_left or is_right))\
 	or (is_down and (is_up or is_left or is_right))\
@@ -455,16 +488,16 @@ func _move_focus_command():
 
 	var target_button
 	var is_other_key:bool = false
-	if is_left and _lastKey != "left":
+	if is_left and _lastKey != KEY_UI_LEFT:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_left)
 		is_other_key = true
-	elif is_right and _lastKey != "right":
+	elif is_right and _lastKey != KEY_UI_RIGHT:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_right)
 		is_other_key = true
-	elif is_up and _lastKey != "up":
+	elif is_up and _lastKey != KEY_UI_UP:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_top)
 		is_other_key = true
-	elif is_down and _lastKey != "down":
+	elif is_down and _lastKey != KEY_UI_DOWN:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_bottom)
 		is_other_key = true
 	if Time.get_ticks_msec() - _lastKeyTime > 300:
@@ -478,16 +511,16 @@ func _move_focus_command():
 
 	if is_left:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_left)
-		_lastKey = "left"
+		_lastKey = KEY_UI_LEFT
 	elif is_right:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_right)
-		_lastKey = "right"
+		_lastKey = KEY_UI_RIGHT
 	elif is_up:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_top)
-		_lastKey = "up"
+		_lastKey = KEY_UI_UP
 	elif is_down:
 		target_button = focusing_button.get_node(focusing_button.focus_neighbor_bottom)
-		_lastKey = "down"
+		_lastKey = KEY_UI_DOWN
 
 #		フォーカスは嘘フォーカスじゃないとだめぽい
 	if focusing_button != null:
@@ -509,6 +542,7 @@ func _move_focus_command():
 	saved_focus_command = focusing_button
 	_lastKeyTime = Time.get_ticks_msec()
 	_key_duration_count += 1
+
 	moved_focus.emit(target_button.position)
 
 	if duration_steps >= 3 and _key_duration_count > key_speed_sakaime_count_3:
@@ -518,11 +552,17 @@ func _move_focus_command():
 	elif duration_steps >= 1 and _key_duration_count > key_speed_sakaime_count_1:
 		_key_duration = key_duration_speed_1
 
-func lock():
-	is_lock = true
-
-func unlock():
-	is_lock = false
+## 長押し状態を解除する
+func _reset_pressing():
+	# 速さリセット
+	_key_duration = key_duration_speed_default
+	if !hold_enable:
+		_lastKey = &""
+		_key_duration = 0
+		_lastKeyTime = 0
+	_key_duration_count = 0
+	_lastKeyTime = 0 #ウェイトなしにする
+	_is_joy_pressing = false
 
 static func get_all_children(in_node:Node) -> Array[Node]:
 	var children = in_node.get_children()
