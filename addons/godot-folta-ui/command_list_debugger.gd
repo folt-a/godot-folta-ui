@@ -74,6 +74,8 @@ var _root_item:TreeItem
 #-----------------------------------------------------------
 
 func _ready():
+	# メインゲームウィンドウの右端にくっつけて表示する
+	self.position = tree.root.position + Vector2i(tree.root.size.x, 0)
 	list_tree.set_column_title(0,"ノード名")
 	list_tree.set_column_title(1,"有効")
 	list_tree.set_column_title(2,"ロック中")
