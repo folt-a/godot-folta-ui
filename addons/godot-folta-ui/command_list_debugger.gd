@@ -6,8 +6,9 @@
 extends Window
 #04. # docstring
 
-## デバッグ用ウィンドウシーンです
+## デバッグ用ウィンドウノードです。
 ## ゲーム内に存在している全てのコマンドリストの状態を監視します。
+## このノードを追加するだけでゲームに存在するノードを監視します。
 
 #region Signal, Enum, Const
 #-----------------------------------------------------------
@@ -104,14 +105,25 @@ func _process(delta: float) -> void:
 func update() -> void:
 	if !_root_item: return
 	var index:int = 0
+	var enable_list_indexes:Array[int] = []
 	for cmd in _command_lists:
 		var item:TreeItem = _root_item.get_child(index)
-		item.set_text(0,_command_lists[index].name)
-		item.set_checked(1,_command_lists[index].is_menu_enable)
-		item.set_checked(2,_command_lists[index].is_lock)
+		item.set_text(0, _command_lists[index].name)
+		item.set_checked(1, _command_lists[index].is_menu_enable)
+		item.set_custom_bg_color(1,Color.TRANSPARENT)
+		item.set_checked(2, _command_lists[index].is_lock)
 		item.set_text(3, _get_focusing_btn_name(_command_lists[index]))
 		item.set_text(4, _get_focusing_btn_id(_command_lists[index]))
+		if _command_lists[index].is_menu_enable:
+			enable_list_indexes.append(index)
 		index+=1
+	if enable_list_indexes.size() == 1:
+		var item:TreeItem = _root_item.get_child(enable_list_indexes[0])
+		item.set_custom_bg_color(1,Color.DARK_GRAY)
+	if enable_list_indexes.size() > 1:
+		for ind in enable_list_indexes:
+			var item:TreeItem = _root_item.get_child(ind)
+			item.set_custom_bg_color(1,Color.DARK_GOLDENROD)
 
 #endregion
 #-----------------------------------------------------------
