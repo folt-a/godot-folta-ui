@@ -362,6 +362,15 @@ func focus_command(command:Control):
 	focusing_button = command
 	saved_focus_command = focusing_button
 
+func focus_by_id(id:StringName):
+	for command_ in command_list:
+		if command_.id == id:
+			command_.set_focus_enter(false,false)
+			focusing_button = command_
+			saved_focus_command = focusing_button
+		else:
+			command_.set_focus_exit(false,false)
+
 func focus_first():
 	assert(!command_list.is_empty())
 	for command in command_list:
