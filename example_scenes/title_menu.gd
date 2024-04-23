@@ -54,7 +54,8 @@ extends Node
 #-----------------------------------------------------------
 
 @onready var icon_button: FoltaUIButton = $FoltaUICommandVList/IconButton
-
+@onready var folta_ui_command_v_list: FoltaUICommandVList = $FoltaUICommandVList
+@onready var folta_ui_command_v_list_2: FoltaUICommandVList = $FoltaUICommandVList2
 
 #endregion
 #-----------------------------------------------------------
@@ -72,9 +73,9 @@ extends Node
 
 func _ready():
 	#icon_button.is_empty = true
-	pass
-
-
+	folta_ui_command_v_list.safe_pressed.connect(_on_list1_pressed)
+	folta_ui_command_v_list_2.safe_pressed.connect(_on_list2_pressed)
+	folta_ui_command_v_list_2.canceled.connect(_on_list2_canceled)
 
 #endregion
 #-----------------------------------------------------------
@@ -84,7 +85,20 @@ func _ready():
 #14. remaining built-in virtual methods
 #-----------------------------------------------------------
 
+func _on_list1_pressed(id:StringName, control:Control) -> void:
+	folta_ui_command_v_list.disable_list()
+	folta_ui_command_v_list_2.show_list()
+	folta_ui_command_v_list_2.focus_first()
 
+func _on_list2_pressed(id:StringName, control:Control) -> void:
+	
+	pass
+
+func _on_list2_canceled():
+	folta_ui_command_v_list_2.disable_list()
+	folta_ui_command_v_list.show_list()
+	folta_ui_command_v_list.focus_first()
+	pass
 
 #endregion
 #-----------------------------------------------------------

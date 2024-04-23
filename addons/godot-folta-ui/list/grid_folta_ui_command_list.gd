@@ -39,7 +39,7 @@ const KEY_UI_RIGHT:StringName = &"ui_right"
 const KEY_UI_ACCEPT:StringName = &"ui_accept"
 const KEY_UI_CANCEL:StringName = &"ui_cancel"
 
-const IS_JOYPAD_ENABLED:bool = false
+const IS_JOYPAD_ENABLED:bool = true
 const KEY_JOY_UP:StringName = &"joy_up"
 const KEY_JOY_DOWN:StringName = &"joy_down"
 const KEY_JOY_LEFT:StringName = &"joy_left"
@@ -229,9 +229,14 @@ func _on_mouse_exited_command(button):
 func _on_safe_pressed_command(button):
 	safe_pressed.emit(button)
 	is_lock = true
-	for command in command_list:
-		if command != button:
-			command.set_focus_exit(false,false)
+	if is_pressed_exit_focus:
+		is_lock = true
+		for command in command_list:
+			if command != button:
+				command.set_focus_exit(false,false)
+	else:
+		button.set_focus_enter()
+
 
 #-----------------------------------------------------------
 #15. public methods
@@ -322,6 +327,7 @@ func set_all_items_disable()->void:
 				child.safe_disabled = true
 				child.focus_mode = Control.FOCUS_NONE
 				child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				child.release_focus()
 	lock()
 
 func focus_command(command:Control):
