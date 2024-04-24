@@ -22,3 +22,11 @@ GodotデフォルトのUI用ノードであるControlでは以下のような問
 `addons/godot-folta-ui` をGodotプロジェクトに入れます。
 
 `addons`ディレクトリには入れますが、アドオンを有効にする必要はありません。
+
+### デバッガ
+
+`res://addons/godot-folta-ui/command_list_debugger.tscn` をゲーム内に追加してプレイすると、
+
+現在のゲームシーン内のメニューの状態のデバッガが表示されます。
+
+![image](https://github.com/folt-a/godot-folta-ui/assets/32963227/58c45b1c-2a66-4175-8a8b-df8a0fff31f6)
